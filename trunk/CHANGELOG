@@ -1,0 +1,33 @@
+Changelog
+
+4/8/07- Initial stages:
+	can pin only 1 thread onto 1 core. must provide cpu mask
+
+4/10/07-support for two threads added. but they are seperate applications
+	now the build has wrapper1 and wrapper2
+
+5/8/07- realized that there needs to be some generic way rather than n applications
+	for n threads!
+	
+	Now there is a single wrapper application which dynamically counts the number of
+	keywords "core" and then launches the n apps in n different processors
+
+	the mask was confusing therefore it was removed and now you will have to enter 
+	the cpu_id (0,1,2,3....) which is more natural rather than calculating the masks
+
+5/12/07-Realized that the keyword must be changable
+	Now you can provide an option during build make opt OPTI='keyword' to use a different
+	keyword.
+
+3/6/08- Serious bug resolved. The main parent process was not waiting for ALL its children
+	but was waiting for the first to complete! added the required loop to perform 
+	multiple waits!
+	Also a new feature was added! now there is a -k flag which allows one to kill
+	all pending apps as soon as the first among them completes.
+3/9/08- There was a problem with the -k feature. It kills the child, but orphans the 
+	process created by the system() (That is what ever app was launched is still 
+	running! Now I set each child'g GID and then kill everything with that GID.
+	That way I am sure everything dies!
+	Added install and uninstall options for the makefile
+3/10/08-The -k option fix done yesterday (see above) was faulty (bug) this was fixed.
+
