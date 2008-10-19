@@ -98,7 +98,7 @@ int main(int argc, char* argv[]){
 		else if(just == 1){
 			just++;
 			//shift 1 left cpu id number of times to form the mask
-			app_data[app_index].core = 1 << atoi(argv[i]);
+			app_data[app_index].core = atoi(argv[i]);
 		}
 		//else collect the command line options for the 
 		//app to run
@@ -201,7 +201,7 @@ void print_usage(void){
 }
 
 void help(void){
-	printf("Usage: wrapper [-k] %s <cpu_id_1> <application_1> [%s <cpu_id_2> <application_2> ....]\n\n", CORE, CORE);
+	printf("Usage: wrapper [-k] %s <cpumask1> <application_1> [%s <cpumask2> <application_2> ....]\n\n", CORE, CORE);
 	printf("-k \t\t\t\t[Optional] Kill all apps as soon as any one of them exits, wrapper waits for all by default\n");
 	printf("%s \t\t\t\tKeyword seperating the applications\n",CORE);
 	printf("cpu_id_x ->\t\t\tThe cpu on which you want to execute application_x\n");
