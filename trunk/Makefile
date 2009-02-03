@@ -20,10 +20,10 @@
 all: launch
 
 launch: launch.c 
-	$(CC) -O3 -o launch launch.c
+	$(CC) -O0 -o launch launch.c
 
-opt: wrapper.c
-	$(CC) -O3 -o launch launch.c -DKEYWORD='"$(OPTI)"'
+opt: launch.c
+	$(CC) -O0 -o launch launch.c -DKEYWORD='"$(OPTI)"'
 clean: 
 	rm launch
 
