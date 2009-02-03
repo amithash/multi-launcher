@@ -22,14 +22,13 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
-#include <unistd.h>
-#include <signal.h>
-#include <errno.h>
-#include <sys/types.h>
+#include <time.h>
 #include <sys/wait.h>
-#include <sys/signal.h>
 
 #include "launch.h"
+double launch(char *cmd);
+double in_sec(struct timeval *start, struct timeval *end);
+void copy_cmd(char *cmd, char *prog, int max);
 
 
 int main(int argc, char* argv[]){
@@ -50,6 +49,8 @@ int main(int argc, char* argv[]){
 	typedef struct{
 		int core;
 		char prog[300];
+		char cmd[300];
+		double elapsed;
 	}app;
 	app *app_data;
 
@@ -110,7 +111,7 @@ int main(int argc, char* argv[]){
 			}
 			//copy the data structure into the array
 			return_gr = strcat(app_data[app_index].prog, argv[i]);
-			return_gr = strcat(app_data[app_index].prog, " ");	
+			return_gr = strcat(app_data[app_index].prog, " ");
 		}
 		else{
 			print_usage();
@@ -119,6 +120,10 @@ int main(int argc, char* argv[]){
 	if(just <= 2){
 		print_usage();
 	}
+	for(i=0;i<number_apps;i++){
+		copy_cmd(app_data[i].cmd,app_data[i].prog,300);
+	}
+
         pids = (int *)calloc(number_apps,sizeof(int));
 
 	//app number set to -1, the first child
@@ -156,7 +161,8 @@ int main(int argc, char* argv[]){
 		//get the mask from array and set affinity
 		SET_AFFINITY(app_data[app_number].core);
 		//execute the application
-		system(app_data[app_number].prog);
+		app_data[app_number].elapsed = launch(app_data[app_number].prog);
+		printf("\"%s\" %f\n",app_data[app_number].cmd, app_data[app_number].elapsed);
 		#ifdef DEBUG
 		printf("running: %s on core %d\n",app_data[app_number].prog,app_data[app_number].core);
 		#endif
@@ -166,7 +172,7 @@ int main(int argc, char* argv[]){
 	else{
 		wpid = wait(&child_status);
 		if(WIFEXITED(child_status)){
-			printf("process with pid = %d just finished successfully with status = %d\n",(int)wpid, WEXITSTATUS(child_status));
+			fprintf(stderr,"process with pid = %d just finished successfully with status = %d\n",(int)wpid, WEXITSTATUS(child_status));
 		}
 		// If the -k flag is provided, then kill all the children as soon as the first process exits!
 		if(kill_slow_children){
@@ -212,3 +218,34 @@ void help(void){
 	exit(1);
 }
 
+double launch(char *cmd)
+{
+	struct timeval start,end;
+	int ret;
+	gettimeofday(&start,NULL);
+	ret = system(cmd);
+	if(ret != 0)
+		fprintf(stderr,"ERROR: %s failed with error code %d\n",cmd,ret);
+	gettimeofday(&end,NULL);
+	return in_sec(&start,&end);
+}
+
+
+double in_sec(struct timeval *start, struct timeval *end)
+{
+	double st,ed;
+	st = (double)start->tv_sec + ((double)start->tv_usec/1000000.0);
+	ed = (double)end->tv_sec + ((double)end->tv_usec/1000000.0);
+	return ed-st;
+}
+
+void copy_cmd(char *cmd, char *prog, int max){
+	int i;
+	for(i=0;i<max;i++){
+		if(prog[i] == ' ' || prog[i] == '\0'){
+			cmd[i] = '\0';
+			break;
+		}
+		cmd[i] = prog[i];
+	}
+}
