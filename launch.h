@@ -20,10 +20,9 @@
 #ifndef _LAUNCH_H_
 #define _LAUNCH_H_ 1
 
-
 /* change the keyword to something else if you want to */
 #ifndef KEYWORD
-	#define KEYWORD "core"
+#define KEYWORD "core"
 #endif
 
 /* this is the macro to call sched_setaffinity() */
@@ -36,14 +35,13 @@ assert(sched_setaffinity(0, sizeof(const cpu_set_t), \
                           (const cpu_set_t *)&cpuset) == 0); \
 } while (0)
 
-
 /********************************************************************************
  * 			Global Definations 					*
  ********************************************************************************/
 
-const char CORE[20] = KEYWORD; 
+const char CORE[20] = KEYWORD;
 
-struct struct_app{
+struct struct_app {
 	int core;
 	char prog[300];
 	char cmd[300];
@@ -57,11 +55,11 @@ struct struct_app{
 double launch(char *cmd);
 double in_sec(struct timeval *start, struct timeval *end);
 void copy_cmd(char *cmd, char *prog, int max);
-int get_options(int *kill_slow, int argc,char *argv[]);
+int get_options(int *kill_slow, int argc, char *argv[]);
 int count_num_apps(int kill_slow_flag, int argc, char *argv[]);
-int get_apps(struct struct_app *a, int kill_slow_flag, int number_apps, int argc, char *argv[]);
+int get_apps(struct struct_app *a, int kill_slow_flag, int number_apps,
+	     int argc, char *argv[]);
 void print_usage(void);
 void help(void);
 
 #endif
-
