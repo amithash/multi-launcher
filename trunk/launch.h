@@ -17,17 +17,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
  **************************************************************************/
 
-#ifndef _WRAPPER_H_
-#define _WRAPPER_H_ 1
+#ifndef _LAUNCH_H_
+#define _LAUNCH_H_ 1
 
 
-//change the keyword to something else if you want to
+/* change the keyword to something else if you want to */
 #ifndef KEYWORD
 	#define KEYWORD "core"
 #endif
-//#define DEBUG 1
 
-//this is the macro to call sched_setaffinity()
+/* this is the macro to call sched_setaffinity() */
 #define SET_AFFINITY(x) do { \
 cpu_set_t cpuset; \
 unsigned long *aff = (unsigned long *)&cpuset; \
@@ -38,10 +37,31 @@ assert(sched_setaffinity(0, sizeof(const cpu_set_t), \
 } while (0)
 
 
+/********************************************************************************
+ * 			Global Definations 					*
+ ********************************************************************************/
+
 const char CORE[20] = KEYWORD; 
 
+struct struct_app{
+	int core;
+	char prog[300];
+	char cmd[300];
+	double elapsed;
+};
 
+/********************************************************************************
+ * 			Function Declarations 					*
+ ********************************************************************************/
+
+double launch(char *cmd);
+double in_sec(struct timeval *start, struct timeval *end);
+void copy_cmd(char *cmd, char *prog, int max);
+int get_options(int *kill_slow, int argc,char *argv[]);
+int count_num_apps(int kill_slow_flag, int argc, char *argv[]);
+int get_apps(struct struct_app *a, int kill_slow_flag, int number_apps, int argc, char *argv[]);
 void print_usage(void);
 void help(void);
 
 #endif
+
