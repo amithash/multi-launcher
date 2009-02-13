@@ -27,7 +27,6 @@
 
 #include "launch.h"
 
-
 /********************************************************************************
  * 				Functions					*
  ********************************************************************************/
@@ -37,15 +36,16 @@
  * @argc - total arguments
  * @argv - the arguments
  ********************************************************************************/
-int main(int argc, char* argv[]){
+int main(int argc, char *argv[])
+{
 
-	int i, number_apps=0,app_index=0, app_number=0;
+	int i, number_apps = 0, app_index = 0, app_number = 0;
 	char *return_gr;
-	int just=0;
+	int just = 0;
 	pid_t pid;
-        int *pids;
-        char temp[20];
-        char out[100];
+	int *pids;
+	char temp[20];
+	char out[100];
 	pid_t wpid;
 	pid_t parent_pid;
 	pid_t my_pid;
@@ -53,93 +53,99 @@ int main(int argc, char* argv[]){
 	int kill_slow_children = 0;
 	struct struct_app *apps;
 
-
-	if(get_options(&kill_slow_children,argc,argv))
-		print_usage();
-        
-
-	number_apps = count_num_apps(kill_slow_children,argc,argv);
-
-	apps = (struct struct_app *)calloc(number_apps, sizeof(struct struct_app));
-
-	if(get_apps(apps,kill_slow_children,number_apps,argc,argv))
+	if (get_options(&kill_slow_children, argc, argv))
 		print_usage();
 
-        pids = (int *)calloc(number_apps,sizeof(int));
+	number_apps = count_num_apps(kill_slow_children, argc, argv);
+
+	apps =
+	    (struct struct_app *)calloc(number_apps, sizeof(struct struct_app));
+
+	if (get_apps(apps, kill_slow_children, number_apps, argc, argv))
+		print_usage();
+
+	pids = (int *)calloc(number_apps, sizeof(int));
 
 	app_number = -1;
 
 	parent_pid = getpid();
-	setpgid(parent_pid,parent_pid-1);
+	setpgid(parent_pid, parent_pid - 1);
 
 	/* Fork number_apps children, each child has its
 	 * app_number, when it breaks out. Children have
 	 * pid set to 0. Only the parent will have a non
 	 * -0 value.
 	 */
-	for(i=0;i<number_apps;i++){
+	for (i = 0; i < number_apps; i++) {
 		app_number++;
 		pid = fork();
-		if(pid != 0){
+		if (pid != 0) {
 			pids[app_number] = pid;
-		} else{
+		} else {
 			my_pid = getpid();
-			setpgid(my_pid,my_pid);
+			setpgid(my_pid, my_pid);
 			break;
 		}
-	}	
-	
-	if(pid == 0){
+	}
+
+	if (pid == 0) {
 		/* child */
-		#ifdef DEBUG
-			printf("I am child number %d\n",app_number);
-		#endif
+#ifdef DEBUG
+		printf("I am child number %d\n", app_number);
+#endif
 		/* Set the thread's affinity to core */
 		SET_AFFINITY(apps[app_number].core);
 		/* Execute and get total execution time */
 		apps[app_number].elapsed = launch(apps[app_number].prog);
-		printf("\"%s\" %f\n",apps[app_number].cmd, apps[app_number].elapsed);
-		#ifdef DEBUG
-		printf("running: %s on core %d\n",apps[app_number].prog,apps[app_number].core);
-		#endif
+		printf("\"%s\" %f\n", apps[app_number].cmd,
+		       apps[app_number].elapsed);
+#ifdef DEBUG
+		printf("running: %s on core %d\n", apps[app_number].prog,
+		       apps[app_number].core);
+#endif
 		exit(0);
-	} else{
+	} else {
 		/* Parent */
 
 		/* Wait for the first child to exit */
 		wpid = wait(&child_status);
 
 		/* Print first child's exit status */
-		if(WIFEXITED(child_status)){
-			fprintf(stderr,"process with pid = %d just finished "
-					"successfully with status = %d\n",(int)wpid, WEXITSTATUS(child_status));
+		if (WIFEXITED(child_status)) {
+			fprintf(stderr, "process with pid = %d just finished "
+				"successfully with status = %d\n", (int)wpid,
+				WEXITSTATUS(child_status));
 		}
 
 		/* If we slower tasks must be killed (kill_slow_children = 1),
 		 * then send the term signal to all the children's group.
 		 */
-		if(kill_slow_children){
-			for(i=0;i<number_apps;i++){
-				if(pids[i] != wpid){
-					printf("Killing all process with gid = %d\n",pids[i]);
-					killpg(pids[i],SIGTERM);
-				}
+		if (kill_slow_children) {
+			for (i = 0; i < number_apps; i++) {
+				if (pids[i] == wpid)
+					continue;
+				fprintf(stderr,
+					"Killing all process with gid = %d\n",
+					pids[i]);
+				killpg(pids[i], SIGTERM);
 			}
 		}
-	
+
 		/* Wait for the remaining children. */
-		for(i=0;i<number_apps-1;i++){
+		for (i = 0; i < number_apps - 1; i++) {
 			wpid = wait(&child_status);
-			if(WIFEXITED(child_status)){
-				printf("process with pid = %d just finished successfully with status = %d\n",(int)wpid, WEXITSTATUS(child_status));
+			if (WIFEXITED(child_status)) {
+				fprintf(stderr,
+					"process with pid = %d just finished "
+					"successfully with status = %d\n",
+					(int)wpid, WEXITSTATUS(child_status));
 			}
 		}
-		
+
 	}
 
 	return 0;
 }
-
 
 /********************************************************************************
  * print_usage - Print usage and exit;
@@ -147,8 +153,10 @@ int main(int argc, char* argv[]){
  *
  * Print the usage for launch and exit.
  ********************************************************************************/
-void print_usage(void){
-	printf("Usage: wrapper [-k] %s <cpu_id_1> <application_1> [%s <cpu_id_2> <application_2> ....]\n", CORE, CORE);
+void print_usage(void)
+{
+	printf("Usage: wrapper [-k] %s <cpu_id_1> <application_1> ", CORE);
+	printf("[%s <cpu_id_2> <application_2> ....]\n", CORE);
 	printf("try wrapper -h for help\n");
 	exit(1);
 }
@@ -159,15 +167,20 @@ void print_usage(void){
  *
  * Prints the help screen and exits. 
  ********************************************************************************/
-void help(void){
-	printf("Usage: wrapper [-k] %s <cpumask1> <application_1> [%s <cpumask2> <application_2> ....]\n\n", CORE, CORE);
-	printf("-k \t\t\t\t[Optional] Kill all apps as soon as any one of them exits, wrapper waits for all by default\n");
-	printf("%s \t\t\t\tKeyword seperating the applications\n",CORE);
-	printf("cpu_id_x ->\t\t\tThe cpu on which you want to execute application_x\n");
+void help(void)
+{
+	printf("Usage: wrapper [-k] %s <cpumask1> <application_1> ", CORE);
+	printf("[%s <cpumask2> <application_2> ....]\n\n", CORE);
+	printf("-k \t\t\t\t[Optional] Kill all apps as soon as any one ");
+	printf("of them exits, wrapper waits for all by default\n");
+	printf("%s \t\t\t\tKeyword seperating the applications\n", CORE);
+	printf("cpu_id_x ->\t\t\tThe cpumask on which"
+	       " you want to execute application_x\n");
 	printf("application_x ->\t\tThe applicaton you want to execute\n");
 	printf("[ -- ] means optional\n\n");
-	printf("Note that wrapper cannot handle I/O Redirects (<, >, &>) cleanly\n");
-	printf("enclose the application with the I/O Redirects in single quotes\n\n");
+	printf("Note that wrapper cannot handle I/O Redirects (<, >, &>)\n");
+	printf("cleanly enclose the application with the I/O Redirects "
+	       "in single quotes\n\n");
 	exit(1);
 }
 
@@ -182,16 +195,16 @@ void help(void){
  ********************************************************************************/
 double launch(char *cmd)
 {
-	struct timeval start,end;
+	struct timeval start, end;
 	int ret;
-	gettimeofday(&start,NULL);
+	gettimeofday(&start, NULL);
 	ret = system(cmd);
-	if(ret != 0)
-		fprintf(stderr,"ERROR: %s failed with error code %d\n",cmd,ret);
-	gettimeofday(&end,NULL);
-	return in_sec(&start,&end);
+	if (ret != 0)
+		fprintf(stderr, "ERROR: %s failed with error code %d\n", cmd,
+			ret);
+	gettimeofday(&end, NULL);
+	return in_sec(&start, &end);
 }
-
 
 /********************************************************************************
  * in_sec - convert timevals to a double val in seconds.
@@ -205,10 +218,10 @@ double launch(char *cmd)
  ********************************************************************************/
 double in_sec(struct timeval *start, struct timeval *end)
 {
-	double st,ed;
-	st = (double)start->tv_sec + ((double)start->tv_usec/1000000.0);
-	ed = (double)end->tv_sec + ((double)end->tv_usec/1000000.0);
-	return ed-st;
+	double st, ed;
+	st = (double)start->tv_sec + ((double)start->tv_usec / 1000000.0);
+	ed = (double)end->tv_sec + ((double)end->tv_usec / 1000000.0);
+	return ed - st;
 }
 
 /********************************************************************************
@@ -220,10 +233,11 @@ double in_sec(struct timeval *start, struct timeval *end)
  * Copies just the command part from prog to cmd. Thus leaving out parameters
  * and IO redirection instructions. 
  ********************************************************************************/
-void copy_cmd(char *cmd, char *prog, int max){
+void copy_cmd(char *cmd, char *prog, int max)
+{
 	int i;
-	for(i=0;i<max;i++){
-		if(prog[i] == ' ' || prog[i] == '\0'){
+	for (i = 0; i < max; i++) {
+		if (prog[i] == ' ' || prog[i] == '\0') {
 			cmd[i] = '\0';
 			break;
 		}
@@ -242,16 +256,15 @@ void copy_cmd(char *cmd, char *prog, int max){
  * Get the options from the command line parameters. If -k is provided,
  * kill_slow is changed. If -h is provided, help() is directly called. 
  ********************************************************************************/
-int get_options(int *kill_slow, int argc,char *argv[])
+int get_options(int *kill_slow, int argc, char *argv[])
 {
-	if(argc < 2)
+	if (argc < 2)
 		return -1;
-	if(strcmp(argv[1],"-h") == 0 ||
-			strcmp(argv[1],"--help") == 0)
+	if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)
 		help();
-	if(strcmp(argv[1],"-k")==0 || strcmp(argv[1],"--kill-slow")==0)
+	if (strcmp(argv[1], "-k") == 0 || strcmp(argv[1], "--kill-slow") == 0)
 		*kill_slow = 1;
-	if(argc < 4)
+	if (argc < 4)
 		return -1;
 	return 0;
 }
@@ -272,8 +285,8 @@ int count_num_apps(int kill_slow_flag, int argc, char *argv[])
 	int num_apps = 0;
 	int i;
 
-	for(i=1 + kill_slow_flag;i<argc;i++){
-		if(strcmp(argv[i],CORE) == 0){
+	for (i = 1 + kill_slow_flag; i < argc; i++) {
+		if (strcmp(argv[i], CORE) == 0) {
 			num_apps++;
 		}
 	}
@@ -293,36 +306,35 @@ int count_num_apps(int kill_slow_flag, int argc, char *argv[])
  * Extract the applications to execute and populate the array of struct_app
  * with this information.
  ********************************************************************************/
-int get_apps(struct struct_app *a, int kill_slow_flag, int number_apps, int argc, char *argv[])
+int get_apps(struct struct_app *a, int kill_slow_flag, int number_apps,
+	     int argc, char *argv[])
 {
 	int app_index = -1;
 	int just = 0;
 	int i;
 	char *return_gr;
 
-	for(i=1 + kill_slow_flag,app_index=-1;i<argc; i++){
-		if(strcmp(argv[i],CORE) == 0){
+	for (i = 1 + kill_slow_flag, app_index = -1; i < argc; i++) {
+		if (strcmp(argv[i], CORE) == 0) {
 			just = 1;
 			app_index++;
-		} else if(just == 1){
+		} else if (just == 1) {
 			just++;
 			a[app_index].core = atoi(argv[i]);
-		} else if (just >= 2){
+		} else if (just >= 2) {
 			just++;
 			return_gr = strcat(a[app_index].prog, argv[i]);
 			return_gr = strcat(a[app_index].prog, " ");
-		} else{
+		} else {
 			return -1;
 		}
 	}
-	if(just <= 2 || app_index != number_apps-1){
+	if (just <= 2 || app_index != number_apps - 1) {
 		return -1;
 	}
 
-	for(i=0;i<number_apps;i++){
-		copy_cmd(a[i].cmd,a[i].prog,300);
+	for (i = 0; i < number_apps; i++) {
+		copy_cmd(a[i].cmd, a[i].prog, 300);
 	}
 	return 0;
 }
-
-
