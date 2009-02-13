@@ -17,13 +17,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
 #*************************************************************************
 
+ifdef DEBUG
+FLAGS += -DDEBUG=1
+endif
+
+ifdef OPTI
+FLAGS += -DKEYWORD='"$(OPTI)"'
+endif
+
 all: launch
 
 launch: launch.c 
-	$(CC) -O3 -o launch launch.c
+	$(CC) -O3 -o launch launch.c $(FLAGS)
 
-opt: launch.c
-	$(CC) -O3 -o launch launch.c -DKEYWORD='"$(OPTI)"'
 clean: 
 	rm launch
 
